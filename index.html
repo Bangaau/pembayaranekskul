@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cek Pembayaran Ekskul Komputer</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --success: #16a34a;
+            --danger: #dc2626;
+            --gray: #6b7280;
+            --bg: #f3f4f6;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        body {
+            background-color: var(--bg);
+            color: #333;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h2 {
+            text-align: center;
+            color: var(--primary);
+            margin-bottom: 5px;
+            font-size: 1.5rem;
+        }
+        p.subtitle {
+            text-align: center;
+            color: var(--gray);
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+        }
+        .search-box {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 12px 15px;
+            font-size: 1rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            outline: none;
+            transition: border 0.3s;
+        }
+        input[type="text"]:focus {
+            border-color: var(--primary);
+        }
+        .autocomplete-list {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 0 0 8px 8px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 10;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: none;
+        }
+        .autocomplete-item {
+            padding: 10px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid #f3f4f6;
+        }
+        .autocomplete-item:hover {
+            background-color: #f9fafb;
+        }
+        .result-card {
+            display: none;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+        .student-info {
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .student-info h3 {
+            margin-bottom: 5px;
+        }
+        .month-list {
+            list-style: none;
+            margin-bottom: 15px;
+        }
+        .month-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px dashed #e5e7eb;
+        }
+        .status {
+            font-weight: bold;
+        }
+        .status.lunas { color: var(--success); }
+        .status.belum { color: var(--danger); }
+        .status.strip { color: var(--gray); }
+        
+        .total-box {
+            background-color: #fef2f2;
+            color: var(--danger);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+        }
+        .total-box.all-lunas {
+            background-color: #f0fdf4;
+            color: var(--success);
+        }
+        .wa-btn {
+            display: block;
+            width: 100%;
+            background-color: #25D366;
+            color: white;
+            text-align: center;
+            padding: 12px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 1rem;
+        }
+        .wa-btn:hover {
+            background-color: #128C7E;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Cek Tagihan Ekskul</h2>
+    <p class="subtitle">Ketik nama siswa untuk melihat status pembayaran</p>
+
+    <div class="search-box">
+        <input type="text" id="searchInput" placeholder="🔍 Cari nama siswa (misal: Ahmad)..." autocomplete="off">
+        <div id="autocompleteList" class="autocomplete-list"></div>
+    </div>
+
+    <div id="resultCard" class="result-card">
+        <div class="student-info">
+            <h3 id="resNama">Nama Siswa</h3>
+            <p style="color: var(--gray);">Kelas: <span id="resKelas">-</span></p>
+        </div>
+        
+        <h4 style="margin-bottom: 10px;">Rincian Bulan:</h4>
+        <ul id="monthList" class="month-list"></ul>
+
+        <div id="totalBox" class="total-box">
+            Total Tunggakan: Rp 0
+        </div>
+
+        <a href="#" id="waBtn" class="wa-btn" target="_blank">
+            💬 Konfirmasi ke WhatsApp Admin
+        </a>
+    </div>
+</div>
+
+<script>
+    // 1. MASUKKAN LINK CSV GOOGLE SHEETS ANDA DI DALAM TANDA KUTIP DI BAWAH INI
+    const csvUrl = ""; 
+
+    // DATA UJI COBA (Hanya aktif jika csvUrl di atas kosong)
+    const dummyCSV = `Nama,Kelas,Nominal,Juli,Agustus,September,Oktober,November,Desember
+Ahmad Fauzan,VII-A,50000,Lunas,Lunas,Lunas,Belum,Belum,-
+Siti Nurbaya,VIII-B,50000,Lunas,Lunas,Lunas,Lunas,Lunas,Belum
+Budi Santoso,VII-C,50000,-,-,Lunas,Lunas,Lunas,Lunas`;
+
+    let studentsData = [];
+    const months = ["Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+    const waAdmin = "6285753987438"; 
+
+    async function loadData() {
+        let csvText = dummyCSV;
+        if (csvUrl) {
+            try {
+                const response = await fetch(csvUrl);
+                csvText = await response.text();
+            } catch (error) {
+                console.error("Gagal memuat Google Sheets.");
+            }
+        }
+        parseCSV(csvText);
+    }
+
+    function parseCSV(csv) {
+        const lines = csv.trim().split("\\n");
+        const headers = lines[0].split(",").map(h => h.trim());
+        
+        studentsData = lines.slice(1).map(line => {
+            const values = line.split(",").map(v => v.trim());
+            let student = {};
+            headers.forEach((header, index) => {
+                student[header] = values[index];
+            });
+            return student;
+        });
+    }
+
+    const searchInput = document.getElementById("searchInput");
+    const autocompleteList = document.getElementById("autocompleteList");
+
+    searchInput.addEventListener("input", function() {
+        const val = this.value.toLowerCase();
+        autocompleteList.innerHTML = "";
+        if (!val) {
+            autocompleteList.style.display = "none";
+            return;
+        }
+
+        const matches = studentsData.filter(s => s.Nama.toLowerCase().includes(val));
+        
+        if (matches.length > 0) {
+            autocompleteList.style.display = "block";
+            matches.forEach(student => {
+                const div = document.createElement("div");
+                div.className = "autocomplete-item";
+                div.innerHTML = `<strong>${student.Nama}</strong> (Kelas ${student.Kelas})`;
+                div.addEventListener("click", () => {
+                    searchInput.value = student.Nama;
+                    autocompleteList.style.display = "none";
+                    showResult(student);
+                });
+                autocompleteList.appendChild(div);
+            });
+        } else {
+            autocompleteList.style.display = "none";
+        }
+    });
+
+    document.addEventListener("click", function(e) {
+        if (e.target !== searchInput) {
+            autocompleteList.style.display = "none";
+        }
+    });
+
+    function showResult(student) {
+        document.getElementById("resultCard").style.display = "block";
+        document.getElementById("resNama").innerText = student.Nama;
+        document.getElementById("resKelas").innerText = student.Kelas;
+
+        const monthList = document.getElementById("monthList");
+        monthList.innerHTML = "";
+        let tunggakanBulan = 0;
+        const nominal = parseInt(student.Nominal) || 0;
+
+        months.forEach(month => {
+            if (student[month]) {
+                const statusStr = student[month].toLowerCase();
+                const li = document.createElement("li");
+                li.className = "month-item";
+                
+                let statusBadge = "";
+                if (statusStr === "lunas") {
+                    statusBadge = \`<span class="status lunas">✅ Lunas</span>\`;
+                } else if (statusStr === "belum") {
+                    statusBadge = \`<span class="status belum">❌ Belum Lunas</span>\`;
+                    tunggakanBulan++;
+                } else {
+                    statusBadge = \`<span class="status strip">➖ Tidak ditagih</span>\`;
+                }
+
+                li.innerHTML = \`<span>${month}</span> \${statusBadge}\`;
+                monthList.appendChild(li);
+            }
+        });
+
+        const totalNominal = tunggakanBulan * nominal;
+        const totalBox = document.getElementById("totalBox");
+        const waBtn = document.getElementById("waBtn");
+        const formatRp = new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(totalNominal);
+
+        if (tunggakanBulan > 0) {
+            totalBox.className = "total-box";
+            totalBox.innerHTML = \`Total Tagihan: \${formatRp} (\${tunggakanBulan} Bulan)\`;
+            
+            const waText = encodeURIComponent(\`Halo, saya orang tua dari \${student.Nama} kelas \${student.Kelas}. Saya ingin konfirmasi pembayaran ekskul komputer sebesar \${formatRp}.\`);
+            waBtn.href = \`https://wa.me/\${waAdmin}?text=\${waText}\`;
+            waBtn.style.display = "block";
+        } else {
+            totalBox.className = "total-box all-lunas";
+            totalBox.innerHTML = \`🎉 Terima Kasih! Seluruh tagihan sudah lunas.\`;
+            waBtn.style.display = "none";
+        }
+    }
+
+    loadData();
+</script>
+
+</body>
+</html>
